@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="./style.css" rel="stylesheet">
+
+    <title>Workspace</title>
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <h1>Todo</h1>
+            <input id="todo-input" placeholder="Add a new task..." />
+        </header>
+        <div class="br"></div>
+        <main>
+            <ul id="todo-list"></ul>
+        </main>
+        <div class="br big-br"></div>
+        <h1>Completed</h1>
+        <div class="br"></div>
+        <section>
+            <ul id="completed-list"></ul>
+        </section>
+        <div class="br big-br"></div>
+        <div id="themeButton">𖤓</div>
+    </div>
+    <script>
+        themeButton = document.getElementById('themeButton');
+        //when theme button clicked, toggle between dark mode, but also ue local storage to save the theme
+        themeButton.addEventListener('click', () => {
+            if (document.body.classList.contains('dark')) {
+                document.body.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.body.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+        //load initally saved theme
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark');
+        }
+
+
+        const vscode = acquireVsCodeApi();
+
+        let loaded = false;
+        let saved = {
+            "todo": [],
+            "completed": []
+        };
+
+        window.addEventListener('message', event => {
+            if (event.data.type === 'load') {
+                saved = event.data.data;
+                loaded = true
+                updateLists();
+            }
+        });
+
+        function saveData() {
+            vscode.postMessage({ type: 'save', data: saved });
+        }
+
+
+
+
+        const input = document.getElementById('todo-input');
+        const list = document.getElementById('todo-list');
+        const completedlist = document.getElementById('completed-list');
+
+        const priorities = [
+            { value: 1, label: 'High', color: '#ff6b6b' },
+            { value: 2, label: 'Medium', color: '#ffa502' },
+            { value: 3, label: 'Low', color: '#1dd1a1' },
+            { value: 4, label: 'None', color: '#d3d3d3' },
+        ];
+
+        // let saved = {
+        //     "todo": [
+        //         {
+        //             "id": 12092,
+        //             "text": "Buy groceries",
+        //             "priority": 1,
+        //             "created": '2025-01-28T01:48:13.417Z'
+        //         },
+        //         {
+        //             "id": 12300,
+        //             "text": "Walk the dog",
+        //             "priority": 2,
+        //             "created": '2025-01-28T01:00:13.417Z'
+        //         }
+        //     ],
+        //     "completed": [
+        //         {
+        //             "id": 53240,
+        //             "text": "Do the laundry",
+        //             "priority": 3
+        //         }
+        //     ]
+        // };
+
+        let focussed = null;
+        function updateLists() {
+            list.innerHTML = ""
+            completedlist.innerHTML = ""
+            if (saved.todo.length > 0) {
+                saved.todo.sort((a, b) => {
+                    // First, sort by priority (ascending)
+                    const priorityDifference = a.priority - b.priority;
+                    if (priorityDifference !== 0) return priorityDifference;
+
+                    // If priorities are the same, sort by created date (descending)
+                    return new Date(b.created) - new Date(a.created);
+                }).map(({ id, text, priority, created }) => {
+                    const li = document.createElement('li');
+                    li.classList.add('todo-item');
+
+                    const input = document.createElement('input');
+                    input.className = 'todo-text';
+                    input.value = text;
+
+                    input.addEventListener('change', () => {
+                        saved.todo.find(t => t.id === id).text = input.value;
+                        focussed = id;
+                        updateLists()
+                    });
+
+                    const dropdown = document.createElement('select');
+                    dropdown.className = 'priority-dropdown';
+                    priorities.forEach(({ value, label }) => {
+                        const option = document.createElement('option');
+                        option.value = value;
+                        option.textContent = label;
+                        dropdown.appendChild(option);
+                    });
+
+                    dropdown.addEventListener('change', () => {
+                        saved.todo.find(t => t.id === id).priority = Number(dropdown.value);
+                        saved.todo.find(t => t.id === id).created = new Date().toISOString();
+                        focussed = id;
+                        updateLists()
+                    });
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = '✖';
+                    deleteButton.className = 'delete';
+                    deleteButton.addEventListener('click', () => {
+                        // li.remove()
+                        focussed = id
+                        saved.completed.push({ id, text, priority, created });
+                        saved.todo = saved.todo.filter(t => t.text !== text)
+                        updateLists()
+                    });
+
+                    li.append(input, dropdown, deleteButton);
+                    list.appendChild(li);
+
+                    dropdown.value = priority;
+
+                    li.style.borderLeftColor = priorities.find(p => p.value === priority).color;
+
+                    if (focussed === id) {
+                        dropdown.focus()
+                    }
+                });
+            } else {
+                list.innerHTML = "<p>No tasks</p>"
+            }
+            if (saved.completed.length > 0) {
+                saved.completed.sort((a, b) => a.created > b.created).forEach(({ id, text, priority, created }) => {
+                    const li = document.createElement('li');
+                    li.classList.add('todo-item');
+
+                    const span = document.createElement('span');
+                    span.className = 'todo-text';
+                    span.textContent = text;
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = '✖';
+                    deleteButton.className = 'delete';
+                    deleteButton.addEventListener('click', () => {
+                        saved.completed = saved.completed.filter(t => t.id !== id)
+                        updateLists()
+                    });
+
+                    const revertButton = document.createElement('button');
+                    revertButton.textContent = '↻';
+                    revertButton.className = 'revert';
+                    revertButton.addEventListener('click', () => {
+                        // li.remove()
+                        focussed = id
+                        saved.todo.push({ id, text, priority, created: new Date().toISOString() });
+                        saved.completed = saved.completed.filter(t => t.id !== id)
+                        updateLists()
+
+                    });
+                    li.append(span, revertButton, deleteButton);
+                    completedlist.appendChild(li);
+
+                    li.style.borderLeftColor = priorities.find(p => p.value === priority).color;
+                });
+            } else {
+                completedlist.innerHTML = "<p>No completed tasks</p>"
+            }
+            if (loaded) {
+                saveData();
+            }
+        }
+        updateLists();
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && input.value.trim()) {
+                saved.todo.push({
+                    id: Math.round(Math.random() * 9000) + 10000,
+                    text: input.value,
+                    priority: 1,
+                    created: new Date().toISOString()
+                });
+                updateLists();
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,57 @@
+{
+  "name": "todo-sidebar",
+  "displayName": "To-Do Sidebar",
+  "description": "A modern to-do list for VS Code, per workspace.",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keatonfreed/VsTodo.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "todoSidebar",
+          "title": "To-Do",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "todoSidebar": [
+        {
+          "type": "webview",
+          "id": "todoView",
+          "name": "To-Do List"
+        }
+      ]
+    }
+  },
+  "activationEvents": [
+    "onView:todoView"
+  ],
+  "scripts": {
+    "build": "tsc -p ./",
+    "watch": "tsc -p ./ --watch",
+    "package": "vsce package",
+    "install-local": "code --install-extension $(ls *.vsix | head -n 1)",
+    "reload": "code --reload-window",
+    "update": "npm run build && npm run package && npm run install-local"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.10",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^4.0.0"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
+  }
+}

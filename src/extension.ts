@@ -20,7 +20,7 @@ class TodoViewProvider implements vscode.WebviewViewProvider {
       vscode.window.showErrorMessage('No workspace folder is open.');
       throw new Error('No workspace folder');
     }
-    this.todoFilePath = path.join(workspaceFolders[0].uri.fsPath, '.vscode', 'todo.json');
+    this.todoFilePath = path.join(workspaceFolders[0].uri.fsPath, 'TODO.json');
     this.ensureTodoFile();
   }
 
@@ -72,12 +72,8 @@ class TodoViewProvider implements vscode.WebviewViewProvider {
   }
 
   private ensureTodoFile(): void {
-    const dirPath = path.dirname(this.todoFilePath);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
     if (!fs.existsSync(this.todoFilePath)) {
-      console.log('Creating todo file:', fs.readFileSync(this.todoFilePath, 'utf8'));
+      // console.log('Creating todo file:', fs.readFileSync(this.todoFilePath, 'utf8'));
       fs.writeFileSync(this.todoFilePath, JSON.stringify({ todo: [], completed: [] }, null, 2), 'utf8');
     }
   }

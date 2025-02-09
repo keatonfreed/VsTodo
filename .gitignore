@@ -1,0 +1,11 @@
+node_modules/
+out/
+dist/
+.vscode-test/
+*.vsix
+.DS_Store
+coverage/
+.nyc_output/
+
+*.afphoto
+*.afphoto~lock~
